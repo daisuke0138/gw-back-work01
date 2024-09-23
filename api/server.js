@@ -15,6 +15,7 @@ const cors = require("cors");
 
 const app = express();
 const prisma = new PrismaClient();
+
 // jsで書いた文字列をjsonに変換するためのおまじないです
 app.use(cors());
 app.use(express.json());
