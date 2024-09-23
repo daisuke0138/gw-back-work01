@@ -226,5 +226,8 @@ app.get("/api/auth/user/:id", async (req, res) => {
     }
 });
 
+// appをエクスポート
+module.exports = app;
+
 // localでは、ここでサーバーを起動させます
 // app.listen(PORT, () => console.log("server start"));
