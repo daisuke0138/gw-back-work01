@@ -226,5 +226,5 @@ app.get("/api/auth/user/:id", async (req, res) => {
     }
 });
 
-// ここでサーバーを起動させます
-app.listen(PORT, () => console.log("server start"));
+// localでは、ここでサーバーを起動させます
+// app.listen(PORT, () => console.log("server start"));
