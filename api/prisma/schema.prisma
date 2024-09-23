@@ -26,11 +26,3 @@ model User {
   hoby                String?
   business_experience String?
 }
-
-model Post {
-  id        Int      @id @default(autoincrement())
-  content   String
-  createdAt DateTime @default(now())
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id], name: "UserPosts")
-}
