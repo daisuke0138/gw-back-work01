@@ -16,36 +16,50 @@ const cors = require("cors");
 // supabaseのstorageへのアップロード機能を使うためのおまじないです！
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
-const sharp = require("sharp");
 
+const prisma = new PrismaClient();
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const app = express();
-const prisma = new PrismaClient();
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-
 // jsで書いた文字列をjsonに変換するためのおまじないです
 app.use(cors());
 app.use(express.json());
 
+// multer は、Node.js のミドルウェアで、ファイルのアップロードを処理する
+// memoryStorageで、アップロードされたファイルをメモリ内に一時保存します。
 const upload = multer({ storage: multer.memoryStorage() });
 
 const PORT = process.env.PORT || 3001;
 
-// トークンの検証確認
-const authenticateToken = (req, res, next) => {
+// リクエスト毎にトークンの検証確認 authorization
+
+// authorization ヘッダーが存在する場合、値をスペースで分割し、2番目の部分（トークン）を取得します。
+// authHeader.split(' ')[1] は、Bearer の後に続くトークン部分を抽出します。
+const AuthenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token == null) return res.sendStatus(401);
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    // jwt.verify を使用して、トークンを検証。
+    jwt.verify(token, process.env.KEY, (err, user) => {
         if (err) {
             console.error('JWT verification error:', err);
             return res.sendStatus(403);
         }
         req.user = user;
         next();
+    });
+};
+
+// Supabase クライアントの設定
+const getSupabaseClient = (token) => {
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        headers: {
+            authorization: `Bearer ${token}`
+        }
     });
 };
 
@@ -128,7 +142,7 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 // ログインしているユーザーのデータを取得するAPI
-app.get("/api/auth/user", async (req, res) => {
+app.get("/api/auth/user",async (req, res) => {
     // リクエストヘッダーからトークンを取得
     const token = req.headers.authorization?.split(' ')[1];
 
@@ -165,17 +179,25 @@ app.get("/api/auth/user", async (req, res) => {
 });
 
 // ログインユーザー情報edit API
-app.post('/api/auth/useredit', upload.single('profile_image'), async (req, res) => {
+
+// Multerを使用してprofile_imageをreq.fileに格納。
+app.post('/api/auth/useredit', AuthenticateToken, upload.single('profile_image'), async (req, res) => {
     try {
-        const { id, username, number, department, classification, hoby, business_experience } = req.body;
+        // リクエストボディからユーザー情報を取得
+        const { id, number, department, classification, hoby, business_experience} = req.body;
+        // 画像のURL格納するprofileImageUrlをnullで初期化
         let profileImageUrl = null;
+        
+        const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]); 
 
         // 画像がアップロードされた場合
         if (req.file) {
-            const fileName = `${id}_${number}`;
+            // フロントエンドから送信されたファイル名:fileNameを使用
+            const fileName = req.file.originalname;
+            // supabaseのstorage imagesにファイルをアップロード
             const { data, error } = await supabase
                 .storage
-                .from('images')
+                .from('User_image')
                 .upload(fileName, req.file.buffer, {
                     contentType: req.file.mimetype,
                     upsert: true
@@ -186,20 +208,25 @@ app.post('/api/auth/useredit', upload.single('profile_image'), async (req, res) 
             // ファイル名をURLエンコード
             const encodedFileName = encodeURIComponent(fileName);
 
-            // 画像のURLを取得 ;
+            // supabaseのstorage内における画像のURLを取得 ;
+            // urlDataは画像URLを格納場所
+            // publicUrlは画像URL
+            // getPublicUrl=encodedFileNameで指定された画像URLをimagesから取得
             const { data: urlData } = supabase
                 .storage
-                .from('images')
+                .from('User_image')
                 .getPublicUrl(encodedFileName);
 
+            console.log("URL Data:", urlData);
+            // urlDataに入った画像URL＝publicUrlをprofileImageUrlに格納
             profileImageUrl = urlData.publicUrl;
         }
-
+        console.log("Profile Image URL:", profileImageUrl);
         // ユーザー情報の更新
         const { data: updatedUser, error: updateError } = await supabase
-            .from('users')
+            .from('User')
             .update({
-                username,
+                number,
                 department,
                 classification,
                 hoby,
