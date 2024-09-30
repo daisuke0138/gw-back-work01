@@ -297,13 +297,13 @@ app.get("/api/auth/user/:id", async (req, res) => {
     }
 });
 
-// appをエクスポート、ローカル環境ではコメントアウトすること
-// module.exports = app;
+// デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
+module.exports = app;
 
 // localでは、ここでサーバーを起動させます
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//     console.log(`Server is running on port ${PORT}`);
+// });
 // app.listen(PORT, '0.0.0.0', () => {
 //     console.log(`Server is running on port ${PORT}`);
 // });
