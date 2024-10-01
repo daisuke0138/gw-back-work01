@@ -15,14 +15,27 @@ datasource db {
 
 ////model 情報
 model User {
-  id                  Int     @id @default(autoincrement())
+  id                  Int       @id @default(autoincrement())
   username            String?
-  email               String? @unique
+  email               String?   @unique
   password            String?
   number              String?
-  profile_image       String? // オプショナルに設定
+  profile_image       String?   // オプショナルに設定
   department          String?
   classification      String?
   hoby                String?
   business_experience String?
+  documents           Document[] // 1対多の関係を設定
+}
+
+model Document {
+  id          Int      @id @default(autoincrement())
+  title       String
+  theme       String
+  updatedAt   DateTime @default(now())
+  overview    String
+  results     String
+  objects     String
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
 }

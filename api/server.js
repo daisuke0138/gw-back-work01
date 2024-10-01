@@ -297,13 +297,61 @@ app.get("/api/auth/user/:id", async (req, res) => {
     }
 });
 
+// ・・・・・・・これ以降がdocument tableのAPIです・・・・・・
+
+
+// docment tableのデータを送信するAPI
+app.post("/api/auth/doc", AuthenticateToken, async (req, res) => {
+
+    // リクエストヘッダーからトークンを取得
+    const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]); 
+
+
+    try {
+        // // トークンからユーザーIDを取得
+        const tokenId = req.user.id;
+
+        // ユーザーIDをログに出力
+        console.log("tokenId:", tokenId);
+
+        // リクエストボディからデータを取得
+        const { title, theme, overview, results, objects } = req.body;
+
+        // 取得したデータをログに出力して確認
+        console.log("Request Body Data:", { title, theme, overview, results, objects });
+
+        // objectsをJSON文字列に変換
+        const objectsString = JSON.stringify(objects);
+
+        /// Prisma Clientを使用してデータを新規作成
+        const document = await prisma.document.create({
+            data: {
+                title,
+                theme,
+                overview,
+                results,
+                objects: objectsString,
+                userId: tokenId
+            }
+        });
+            // .eq('id', tokenId);
+
+        console.log("senddata:", document);
+    
+        // 作成されたドキュメントをJSON形式で返却
+        return res.json({ document });
+    } catch (error) {
+        console.error("Error creating document:", error);
+        return res.status(500).json({ error: "documentデータの作成中にエラーが発生しました" });
+    }
+});
+
+
 // デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
-module.exports = app;
+// module.exports = app;
 
 // localでは、ここでサーバーを起動させます
-// app.listen(PORT, () => {
-//     console.log(`Server is running on port ${PORT}`);
-// });
-// app.listen(PORT, '0.0.0.0', () => {
-//     console.log(`Server is running on port ${PORT}`);
-// });
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+});
