@@ -297,7 +297,7 @@ app.get("/api/auth/user/:id", async (req, res) => {
     }
 });
 
-// ・・・・・・・これ以降がdocument tableのAPIです・・・・・・
+// ・・・・・・・これ以降がdocument tableのAPIです・・・・・
 
 
 // docment tableのデータを送信するAPI
@@ -346,12 +346,64 @@ app.post("/api/auth/doc", AuthenticateToken, async (req, res) => {
     }
 });
 
+// ログインしているユーザーのdocumetデータを取得するAPI
+app.get("/api/auth/documents", async (req, res) => {
+    // リクエストヘッダーからトークンを取得
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "トークンが提供されていません" });
+    }
+
+    try {
+        // トークンを検証してdecodeに変数としてトークンを格納
+        const decoded = jwt.verify(token, process.env.KEY);
+        // トークンからユーザーIDを取得
+        const userId = decoded.id;
+
+        // ユーザーIDをログに出力
+        console.log("Userid:", userId);
+
+        // Prisma Clientを使用してdbのidとトークンから取得したユーザーid(リクエストあったユーザー)を
+        // 検索してデータ取得
+        const docdata = await prisma.document.findUnique({
+            where: { id: userId },
+        });
+        console.log("getdocdata:", docdata);
+
+        if (!docdata) {
+            return res.status(404).json({ error: "ユーザーが見つかりません" });
+        }
+
+        // ユーザー情報をJSON形式でuserに格納してフロントへ送信
+        return res.json({ docdata });
+    } catch (error) {
+        console.error("Error fetching user data:", error);
+        return res.status(500).json({ error: "ユーザーデータの取得中にエラーが発生しました" });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
-// module.exports = app;
+module.exports = app;
 
 // localでは、ここでサーバーを起動させます
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// app.listen(PORT, '0.0.0.0', () => {
+//     console.log(`Server is running on port ${PORT}`);
+// });
