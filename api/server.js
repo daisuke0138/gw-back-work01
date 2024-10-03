@@ -157,14 +157,14 @@ app.get("/api/auth/user",async (req, res) => {
         const userId = decoded.id;
 
         // ユーザーIDをログに出力
-        console.log("Userid:", userId);
+        // console.log("Userid:", userId);
         
         // Prisma Clientを使用してdbのidとトークンから取得したユーザーid(リクエストあったユーザー)を
         // 検索してデータ取得
         const user = await prisma.user.findUnique({
             where: { id: userId },
         });
-        console.log("getdata:", user);
+        // console.log("getdata:", user);
         
         if (!user) {
             return res.status(404).json({ error: "ユーザーが見つかりません" });
@@ -217,11 +217,11 @@ app.post('/api/auth/useredit', AuthenticateToken, upload.single('profile_image')
                 .from('User_image')
                 .getPublicUrl(encodedFileName);
 
-            console.log("URL Data:", urlData);
+            // console.log("URL Data:", urlData);
             // urlDataに入った画像URL＝publicUrlをprofileImageUrlに格納
             profileImageUrl = urlData.publicUrl;
         }
-        console.log("Profile Image URL:", profileImageUrl);
+        // console.log("Profile Image URL:", profileImageUrl);
         // ユーザー情報の更新
         const { data: updatedUser, error: updateError } = await supabase
             .from('User')
@@ -366,20 +366,20 @@ app.get("/api/auth/documents", async (req, res) => {
 
         // Prisma Clientを使用してdbのidとトークンから取得したユーザーid(リクエストあったユーザー)を
         // 検索してデータ取得
-        const docdata = await prisma.document.findUnique({
-            where: { id: userId },
+        const docdata = await prisma.document.findMany({
+            where: { userId: userId },
         });
         console.log("getdocdata:", docdata);
 
-        if (!docdata) {
-            return res.status(404).json({ error: "ユーザーが見つかりません" });
+        if (!docdata || docdata.length === 0) {
+            return res.status(404).json({ error: "documentデータが見つかりません" });
         }
 
-        // ユーザー情報をJSON形式でuserに格納してフロントへ送信
-        return res.json({ docdata });
+        // 取得したデータをJSON形式で返却
+        return res.json({ documents: docdata });
     } catch (error) {
-        console.error("Error fetching user data:", error);
-        return res.status(500).json({ error: "ユーザーデータの取得中にエラーが発生しました" });
+        console.error("Error fetching document data:", error);
+        return res.status(500).json({ error: "documentデータの取得中にエラーが発生しました" });
     }
 });
 
