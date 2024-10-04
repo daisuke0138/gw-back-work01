@@ -300,7 +300,7 @@ app.get("/api/auth/user/:id", async (req, res) => {
 // ・・・・・・・これ以降がdocument tableのAPIです・・・・・
 
 
-// docment tableのデータを送信するAPI
+// docmentデータをdbへ送信するAPI
 app.post("/api/auth/doc", AuthenticateToken, async (req, res) => {
 
     // リクエストヘッダーからトークンを取得
@@ -384,26 +384,99 @@ app.get("/api/auth/documents", async (req, res) => {
 });
 
 
+// Mypageの編集ボタンで選択したdocumetデータを取得するAPI
+app.get("/api/auth/document/:id", async (req, res) => {
+    console.log("Received request for document ID:", req.params.id);
+    // リクエストパラメータからユーザーIDを取得
+    const documentId = parseInt(req.params.id, 10);
+
+    if (isNaN(documentId)) {
+        return res.status(400).json({ error: "無効なドキュメントIDです" });
+    }
+
+    try {
+        // Prisma Clientを使用してユーザーを検索
+        const document = await prisma.document.findUnique({
+            where: { id: documentId },
+        });
+        console.log("geteditdocdata:", document);
+
+        if (!document) {
+            return res.status(404).json({ error: "ドキュメントが見つかりません" });
+        }
+
+        // ユーザー情報をJSON形式で返却
+        return res.json({document });
+    } catch (error) {
+        console.error("Error fetching document data:", error);
+        return res.status(500).json({ error: "ドキュメントデータの取得中にエラーが発生しました" });
+    }
+});
+
+// ドキュメントデータを上書きするAPI
+app.post("/api/auth/docupdata", AuthenticateToken, async (req, res) => {
+
+    // リクエストヘッダーからトークンを取得
+    const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]);
 
 
+    try {
+        // // トークンからユーザーIDを取得
+        const tokenId = req.user.id;
+
+        // ユーザーIDをログに出力
+        console.log("tokenId:", tokenId);
+
+        // リクエストボディからデータを取得
+        const { documentId, title, theme, overview, results, objects } = req.body;
+
+        // 取得したデータをログに出力して確認
+        console.log("Request Body Data:", { documentId,title, theme, overview, results, objects });
+
+        // documentId が正しく取得できているか確認
+        if (!documentId) {
+            return res.status(400).json({ error: "documentId が指定されていません" });
+        }
+
+        // documentId を整数に変換
+        const documentIdInt = parseInt(documentId, 10);
+        if (isNaN(documentIdInt)) {
+            return res.status(400).json({ error: "documentId が無効です" });
+        }
 
 
+        // objectsをJSON文字列に変換
+        const objectsString = JSON.stringify(objects);
 
+        /// Prisma Clientを使用してデータを上書き
+        const updatadDocument = await prisma.document.update({
+            where: { id: documentIdInt },
+            data: {
+                title,
+                theme,
+                overview,
+                results,
+                objects: objectsString,
+            },
+        });
+       
+        console.log("senddata:", updatadDocument);
 
-
-
-
-
-
-
+        // 作成されたドキュメントをJSON形式で返却
+        return res.json({ updatadDocument });
+    } catch (error) {
+        console.error("Error updata document:", error);
+        return res.status(500).json({ error: "documentデータの作成中にエラーが発生しました" });
+    }
+});
 
 
 
 // デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること
-module.exports = app;
+// module.exports = app;
 
 // localでは、ここでサーバーを起動させます
 
-// app.listen(PORT, '0.0.0.0', () => {
-//     console.log(`Server is running on port ${PORT}`);
-// });
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+});
