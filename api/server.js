@@ -300,7 +300,7 @@ app.get("/api/auth/user/:id", async (req, res) => {
 // ・・・・・・・これ以降がdocument tableのAPIです・・・・・
 
 
-// docmentデータをdbへ送信するAPI
+// 新規作成のdocmentデータをdbへ送信するAPI
 app.post("/api/auth/doc", AuthenticateToken, async (req, res) => {
 
     // リクエストヘッダーからトークンを取得
@@ -467,6 +467,31 @@ app.post("/api/auth/docupdata", AuthenticateToken, async (req, res) => {
     } catch (error) {
         console.error("Error updata document:", error);
         return res.status(500).json({ error: "documentデータの作成中にエラーが発生しました" });
+    }
+});
+
+// 特定のIDのユーザードキュメントデータを取得するAPI
+app.get("/api/auth/menberdocument/:id", async (req, res) => {
+    // リクエストパラメータからユーザーIDを取得
+    const documentId = parseInt(req.params.id, 10);
+
+    try {
+        // Prisma Clientを使用してdbのidとトークンから取得したユーザーid(リクエストあったユーザー)を
+        // 検索してデータ取得
+        const docdata = await prisma.document.findMany({
+            where: { userId: documentId },
+        });
+        console.log("getdocdata:", docdata);
+
+        if (!docdata || docdata.length === 0) {
+            return res.status(404).json({ error: "documentデータが見つかりません" });
+        }
+
+        // 取得したデータをJSON形式で返却
+        return res.json({ documents: docdata });
+    } catch (error) {
+        console.error("Error fetching document data:", error);
+        return res.status(500).json({ error: "documentデータの取得中にエラーが発生しました" });
     }
 });
 
