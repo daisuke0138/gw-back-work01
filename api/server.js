@@ -490,7 +490,7 @@ app.get("/api/auth/menberdocument/:id", async (req, res) => {
         // 取得したデータをJSON形式で返却
         return res.json({ documents: docdata });
     } catch (error) {
-        
+
         console.error("Error fetching document data:", error);
         return res.status(500).json({ error: "documentデータの取得中にエラーが発生しました" });
     }
