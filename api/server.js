@@ -496,6 +496,123 @@ app.get("/api/auth/menberdocument/:id", async (req, res) => {
     }
 });
 
+//////////以下がdocument用のイラスト処理用のAPIです//////////
+
+// イラストdb登録 API
+
+// Multerを使用してprofile_imageをreq.fileに格納。
+app.post('/api/auth/imagecreat', AuthenticateToken, upload.single('file'), async (req, res) => {
+    try {
+        // リクエストボディからユーザー情報を取得
+        const { id, kinds, imageName } = req.body;
+        // 画像のURL格納するdocImageUrlをnullで初期化
+        let docImageUrl = null;
+
+        const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]);
+
+        // 画像がアップロードされた場合
+        if (req.file) {
+            // フロントエンドから送信されたファイル名:romajiImageNameを使用
+            const fileName = req.file.originalname;
+            // supabaseのstorage imagesにファイルをアップロード
+            const { data, error } = await supabase
+                .storage
+                .from('Doc_illustration')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: true
+                });
+
+            if (error) throw error;
+
+            // ファイル名をURLエンコード
+            const encodedFileName = encodeURIComponent(fileName);
+
+            // supabaseのstorage内における画像のURLを取得 ;
+            // urlDataは画像URLを格納場所
+            // publicUrlは画像URL
+            // getPublicUrl=encodedFileNameで指定された画像URLをimagesから取得
+            const { data: urlData } = supabase
+                .storage
+                .from('Doc_illustration')
+                .getPublicUrl(encodedFileName);
+
+            // console.log("URL Data:", urlData);
+            // urlDataに入った画像URL＝publicUrlをdocImageUrlに格納
+            docImageUrl = urlData.publicUrl;
+        }
+
+        // console.log("Profile Image URL:", docImageUrl);
+        // 取得したデータをデータベースに保存
+        const { data: newImage, error: insertError } = await supabase
+            .from('Imagelist')
+            .insert({
+                kinds,
+                imageName,
+                imageUrl: docImageUrl,
+            });
+
+        if (insertError) throw insertError;
+
+        return res.json({ image: newImage });
+
+    } catch (error) {
+        console.error('Error creating image:', error);
+        res.status(500).json({ error: '画像の作成中にエラーが発生しました' });
+    }
+});
+
+// 
+app.get('/api/auth/docimage', AuthenticateToken, async (req, res) => {
+    try {
+        // クエリパラメータからkindsを取得
+        const { kinds } = req.query;
+
+        const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]);
+
+        // Supabaseのテーブルからkindsに一致するデータを取得
+        const { data, error } = await supabase
+            .from('Imagelist')
+            .select('imageUrl')
+            .eq('kinds', kinds)
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        // 取得したデータをクライアントに返す
+        return res.json(data);
+
+    } catch (error) {
+        console.error('Error fetching images:', error);
+        res.status(500).json({ error: '画像の取得中にエラーが発生しました' });
+    }
+});
+
+// クライアント側で選択されたジャンルのUrlをdbから取得するAPI
+app.get('/api/auth/docimage', AuthenticateToken, async (req, res) => {
+    try {
+        // クエリパラメータからkindsを取得
+        const { kinds } = req.query;
+
+        const supabase = getSupabaseClient(req.headers['authorization'].split(' ')[1]);
+
+        // Supabaseのテーブルからkindsに一致するデータを取得
+        const { data, error } = await supabase
+            .from('Imagelist')
+            .select('imageUrl','imageName')
+            .eq('kinds', kinds)
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        // 取得したデータをクライアントに返す
+        return res.json(data);
+
+    } catch (error) {
+        console.error('Error fetching images:', error);
+        res.status(500).json({ error: '画像の取得中にエラーが発生しました' });
+    }
+});
 
 
 // デプロイ環境で使用。appをエクスポート、ローカル環境ではコメントアウトすること

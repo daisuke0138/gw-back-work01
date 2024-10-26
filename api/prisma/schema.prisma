@@ -40,3 +40,11 @@ model Document {
   user        User     @relation(fields: [userId], references: [id])
   username    String? 
 }
+
+model Imagelist{
+  id          Int      @id @default(autoincrement())
+  kinds       String
+  imageName   String
+  imageUrl    String
+  updatedAt   DateTime @default(now())
+}
